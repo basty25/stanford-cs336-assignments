@@ -226,6 +226,7 @@ def train_bpe(
     # counts = get_counts(input_splitted, pattern)
 
     # pattern = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
+    # create special token split pattern
     special_tokens = sorted(special_tokens, key=len, reverse=True)
     if len(special_tokens) > 0:
         splits = "|".join([re.escape(special) for special in special_tokens])
@@ -240,10 +241,8 @@ def train_bpe(
         else:
             split_special_token = b"<|endoftext|>"
         boundaries = find_chunk_boundaries(f, num_processes, split_special_token)
-        # boundaries = find_chunk_boundaries(f, num_processes, splits)
 
-        # The following is a serial implementation, but you can parallelize this
-        # by sending each start/end pair to a set of processes.
+        # create chunks for multiprocessing and split each junk for get_counts()
         counts = Counter()
         chunks = []
         for start, end in zip(boundaries[:-1], boundaries[1:]):
