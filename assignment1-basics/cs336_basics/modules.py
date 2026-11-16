@@ -3,6 +3,7 @@ import math
 from torch import nn
 from einops import rearrange, einsum
 
+
 class Linear(nn.Module):
     def __init__(
             self, 
@@ -27,10 +28,7 @@ class Linear(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return einsum(x, self.weight, "... d_in, d_out d_in -> ... d_out")
 
-""" 
-in (batch sequence)
-out (batch, sequence, d_moddel)
-"""
+
 class Embedding(nn.Module):
     def __init__(
             self, 
@@ -50,3 +48,26 @@ class Embedding(nn.Module):
 
     def forward(self, token_ids: torch.Tensor) -> torch.Tensor:
         return self.embedding[token_ids]
+
+
+class RMSNorm(nn.Module):
+    def __init__(
+            self, 
+            d_model: int, 
+            eps: float = 1e-5,
+            device:  torch.device | None = None,
+            dtype: torch.dtype | None = None,
+    ):
+        super().__init__()
+        self.d_model = d_model
+        self.eps = eps
+        self.gain = nn.Parameter(torch.ones(d_model, device=device, dtype=dtype))
+
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # x (batch sequence d_model)
+        in_dtype = x.dtype
+        x = x.to(torch.float32)
+        RMS = torch.sqrt(1/self.d_model * (x**2).sum(-1, keepdim=True) + self.eps)
+        result = x / RMS * self.gain
+        return result.to(in_dtype)
